@@ -41,6 +41,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
 
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim16;
@@ -54,6 +55,7 @@ uint16_t duty_cyle = 0;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
@@ -95,6 +97,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_ADC1_Init();
   MX_TIM2_Init();
@@ -117,11 +120,7 @@ int main(void)
   while (1)
   {
 	// Start ADC Conversion
-	HAL_ADC_Start_IT(&hadc1);
-	// Set Duty cycle PWM Timer 16
-	TIM16->CCR1 = (duty_cyle<<4);
-	// Set Duty cycle PWM Timer 2
-	TIM2->CCR2 = (uint32_t)(duty_cyle<<4);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&duty_cyle, 1);
 	// Wait one microsecond
 	HAL_Delay(1);
     /* USER CODE END WHILE */
@@ -213,7 +212,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc1.Init.OversamplingMode = DISABLE;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -404,6 +403,22 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -443,8 +458,13 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	// Read & Update The ADC Result
-	duty_cyle = HAL_ADC_GetValue(&hadc1);
+	// Conversion Complete & DMA Transfer Complete As Well
+	// So The AD_RES Is Now Updated & Let's Move IT To The PWM CCRx
+	// Update The PWM Duty Cycle With Latest ADC Conversion Result
+	// Set Duty cycle PWM Timer 16
+	TIM16->CCR1 = (duty_cyle<<4);
+	// Set Duty cycle PWM Timer 2
+	TIM2->CCR2 = (uint32_t)(duty_cyle<<4);
 }
 /* USER CODE END 4 */
 
