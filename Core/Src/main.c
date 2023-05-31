@@ -48,7 +48,7 @@ TIM_HandleTypeDef htim16;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+uint16_t duty_cyle = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,7 +74,7 @@ static void MX_TIM16_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-  uint16_t duty_cyle = 0;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -117,11 +117,7 @@ int main(void)
   while (1)
   {
 	// Start ADC Conversion
-	HAL_ADC_Start(&hadc1);
-	// Poll ADC1 Perihperal & TimeOut = 1mSec
-	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-	//Read The ADC Conversion Result & Map It To PWM DutyCycle
-	duty_cyle = HAL_ADC_GetValue(&hadc1);
+	HAL_ADC_Start_IT(&hadc1);
 	// Set Duty cycle PWM Timer 16
 	TIM16->CCR1 = (duty_cyle<<4);
 	// Set Duty cycle PWM Timer 2
@@ -445,7 +441,11 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+	// Read & Update The ADC Result
+	duty_cyle = HAL_ADC_GetValue(&hadc1);
+}
 /* USER CODE END 4 */
 
 /**
