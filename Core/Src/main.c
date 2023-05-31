@@ -74,7 +74,7 @@ static void MX_TIM16_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  uint16_t duty_cyle = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -100,13 +100,34 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
-
+  // Start PWM Timer 16
+  HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1);
+  // Start PWM Timer 2
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+  // Reset Duty cycle PWM Timer 16
+  TIM16->CCR1 = duty_cyle;
+  // Reset Duty cycle PWM Timer 2
+  TIM2->CCR2 = (uint32_t)duty_cyle;
+  // Calibrate the ADC On Power-Up For Better Accuracy
+  HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	// Start ADC Conversion
+	HAL_ADC_Start(&hadc1);
+	// Poll ADC1 Perihperal & TimeOut = 1mSec
+	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	//Read The ADC Conversion Result & Map It To PWM DutyCycle
+	duty_cyle = HAL_ADC_GetValue(&hadc1);
+	// Set Duty cycle PWM Timer 16
+	TIM16->CCR1 = (duty_cyle<<4);
+	// Set Duty cycle PWM Timer 2
+	TIM2->CCR2 = (uint32_t)(duty_cyle<<4);
+	// Wait one microsecond
+	HAL_Delay(1);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
