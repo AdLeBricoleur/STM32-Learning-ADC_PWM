@@ -1,5 +1,5 @@
 # STM32-Learning-ADC_PWM
-Ce dépôt correspond à mon apprentissage de l'ADC et de l'UART TX sur STM32L476RG.
+Ce dépôt correspond à mon apprentissage de l'ADC et de la PWM sur STM32L476RG.
 
 Je travaille sur un Nucleo-L476RG.
 
